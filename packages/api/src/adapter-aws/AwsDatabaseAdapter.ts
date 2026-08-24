@@ -1,5 +1,5 @@
-import {NotSupportedError} from '../cloud-spi/errors'
-import {ListTagsForResourceCommand, type RDSClient} from '@aws-sdk/client-rds'
+import {NotSupportedError, ValidationError} from '../cloud-spi/errors'
+import {CreateDBInstanceCommand, DeleteDBInstanceCommand, ListTagsForResourceCommand, type RDSClient} from '@aws-sdk/client-rds'
 import {rds as defaultRds} from '../aws'
 import {awsDatabaseSchema} from '../cloud-spi/databaseSchema'
 import type {
@@ -41,12 +41,53 @@ export class AwsDatabaseAdapter implements CloudServiceAdapter {
         }
     }
 
-    async create(_input: CreateResourceInput): Promise<CloudResource> {
-        throw new NotSupportedError('Database creation is not supported from the dynamic Cloud Explorer.')
+    async create(input: CreateResourceInput): Promise<CloudResource> {
+        const identifier = requiredString(input.values.dbInstanceIdentifier, 'dbInstanceIdentifier')
+        if (!IDENTIFIER_PATTERN.test(identifier)) {
+            throw new ValidationError('Use a valid RDS identifier: start with a letter, then lowercase letters, numbers, or single hyphens.')
+        }
+
+        const engine = oneOf(input.values.engine, ENGINES, 'engine')
+        const instanceClass = requiredString(input.values.dbInstanceClass, 'dbInstanceClass')
+        const masterUsername = requiredString(input.values.masterUsername, 'masterUsername')
+        const masterUserPassword = requiredString(input.values.masterUserPassword, 'masterUserPassword')
+        if (masterUserPassword.length < 8) {
+            throw new ValidationError('masterUserPassword must be at least 8 characters')
+        }
+
+        const allocatedStorage = Number(requiredString(input.values.allocatedStorage, 'allocatedStorage'))
+        if (!Number.isInteger(allocatedStorage) || allocatedStorage < 20) {
+            throw new ValidationError('allocatedStorage must be an integer of at least 20')
+        }
+
+        const res = await this.rds.send(new CreateDBInstanceCommand({
+            DBInstanceIdentifier: identifier,
+            DBInstanceClass: instanceClass,
+            Engine: engine,
+            MasterUsername: masterUsername,
+            MasterUserPassword: masterUserPassword,
+            AllocatedStorage: allocatedStorage,
+        }))
+
+        // The create response carries the same shape `list` normalizes, but the
+        // runtime omits tags on it, so re-describe rather than half-fill a
+        // resource the inspector would then render with gaps.
+        const created = res.DBInstance?.DBInstanceIdentifier ?? identifier
+        const resource = await this.get(created)
+        if (resource) return resource
+
+        throw new NotSupportedError(`RDS reported no instance for ${created} after creation.`)
     }
 
-    async delete(_id: string): Promise<void> {
-        throw new NotSupportedError('Database deletion is not supported from the dynamic Cloud Explorer.')
+    async delete(id: string): Promise<void> {
+        // SkipFinalSnapshot is required unless a FinalDBSnapshotIdentifier is
+        // given, and a snapshot of a throwaway local instance is pure friction.
+        // DeleteAutomatedBackups matches: nothing here is worth retaining.
+        await this.rds.send(new DeleteDBInstanceCommand({
+            DBInstanceIdentifier: requiredString(id, 'id'),
+            SkipFinalSnapshot: true,
+            DeleteAutomatedBackups: true,
+        }))
     }
 
     private async toResource(instance: RdsInstance): Promise<CloudResource> {
@@ -108,4 +149,23 @@ function hasHttpStatus(error: unknown, status: number): boolean {
     if (typeof error !== 'object' || error === null) return false
     const metadata = (error as {$metadata?: {httpStatusCode?: number}}).$metadata
     return metadata?.httpStatusCode === status
+}
+
+const ENGINES = ['postgres', 'mysql', 'mariadb'] as const
+
+/** Mirrors the pattern the schema advertises, so both reject the same inputs. */
+const IDENTIFIER_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/
+
+function requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.trim() === '') {
+        throw new ValidationError(`${field} is required`)
+    }
+    return value.trim()
+}
+
+function oneOf<T extends string>(value: unknown, allowed: readonly T[], field: string): T {
+    const raw = requiredString(value, field)
+    const match = allowed.find((candidate) => candidate === raw)
+    if (!match) throw new ValidationError(`${field} must be one of: ${allowed.join(', ')}`)
+    return match
 }

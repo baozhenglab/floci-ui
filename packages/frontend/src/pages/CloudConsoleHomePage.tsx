@@ -1,6 +1,5 @@
 import {Cloud} from 'lucide-react'
 import {Navigate, useNavigate, useParams} from 'react-router-dom'
-import {CloudSelector} from '@/components/CloudSelector'
 import {
     ProviderBanner,
     RuntimeFlow,
@@ -29,21 +28,10 @@ export function CloudConsoleHomePage() {
                         <p className="muted">Cloud-aware local runtime overview</p>
                     </div>
                 </div>
-                <div className="cloud-header-selectors">
-                    <label>
-                        <span>Cloud</span>
-                        <CloudSelector
-                            clouds={data.cloudsQuery.data ?? []}
-                            selected={cloud}
-                            onSelect={(nextCloud) => navigate(`/console/${nextCloud}`)}
-                        />
-                    </label>
-                </div>
             </div>
 
             <div className="content cloud-console-home">
                 <ProviderBanner
-                    cloud={cloud}
                     runtimeClass={data.runtimeClass}
                     runtimeReachable={data.status?.runtime === 'reachable'}
                     onOpenStorage={() => navigate(`/cloud-explorer/${cloud}/storage`)}
@@ -74,5 +62,5 @@ export function CloudConsoleHomePage() {
 }
 
 function normalizeCloud(value?: string): CloudProvider | null {
-    return value === 'aws' || value === 'azure' || value === 'gcp' ? value : null
+    return value === 'aws' ? value : null
 }

@@ -8,128 +8,98 @@ const databaseColumns: TableColumnSchema[] = [
     {name: 'instanceClass', label: 'Class'},
 ]
 
-/** Cloud SQL reports a connection endpoint, which RDS does not surface here. */
-const cloudSqlColumns: TableColumnSchema[] = [
-    {name: 'name', label: 'Name'},
-    {name: 'status', label: 'Status', format: 'badge'},
-    {name: 'engine', label: 'Version'},
-    {name: 'region', label: 'Region'},
-    {name: 'instanceClass', label: 'Tier'},
-    {name: 'connectionName', label: 'Connection', path: 'metadata.connectionName', format: 'code'},
-]
-
 const databaseFilters: FieldSchema[] = [
     {name: 'search', label: 'Search', type: 'text', required: false},
 ]
+
+/** Engines the Floci runtime provisions, with the version it reports for each. */
+const engineOptions = [
+    {label: 'PostgreSQL 16.3', value: 'postgres'},
+    {label: 'MySQL 8.0', value: 'mysql'},
+    {label: 'MariaDB 11.2', value: 'mariadb'},
+]
+
+const instanceClassOptions = ['db.t3.micro', 'db.t3.small', 'db.t3.medium'].map((value) => ({
+    label: value,
+    value,
+}))
+
+/**
+ * Storage is a select rather than a text field: `FieldType` has no numeric kind,
+ * and a free-text number would push integer validation into every consumer.
+ */
+const allocatedStorageOptions = ['20', '50', '100'].map((value) => ({label: `${value} GiB`, value}))
 
 export function awsDatabaseSchema(): ServiceSchema {
     return {
         cloud: 'aws',
         service: 'database',
         displayName: 'AWS RDS',
-        fields: [],
-        actions: ['list', 'inspect'],
-        filters: databaseFilters,
-        columns: databaseColumns,
-    }
-}
-
-export function azureDatabaseSchema(): ServiceSchema {
-    return {
-        cloud: 'azure',
-        service: 'database',
-        displayName: 'Cosmos DB',
         fields: [
             {
-                name: 'databaseName',
-                label: 'Database Name',
+                name: 'dbInstanceIdentifier',
+                label: 'DB Instance Identifier',
                 type: 'text',
                 required: true,
+                description: '1-63 characters. Must start with a letter; lowercase letters, numbers, and hyphens.',
                 validation: {
+                    pattern: '^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$',
                     minLength: 1,
-                    maxLength: 255,
-                    pattern: '^[A-Za-z0-9._-]+$',
-                    message: 'Use letters, numbers, dot, underscore, or dash.',
+                    maxLength: 63,
+                    message: 'Use a valid RDS identifier: start with a letter, then lowercase letters, numbers, or single hyphens.',
+                },
+            },
+            {
+                name: 'engine',
+                label: 'Engine',
+                type: 'select',
+                required: true,
+                options: engineOptions,
+            },
+            {
+                name: 'dbInstanceClass',
+                label: 'Instance Class',
+                type: 'select',
+                required: true,
+                options: instanceClassOptions,
+            },
+            {
+                name: 'allocatedStorage',
+                label: 'Allocated Storage',
+                type: 'select',
+                required: true,
+                options: allocatedStorageOptions,
+            },
+            {
+                name: 'masterUsername',
+                label: 'Master Username',
+                type: 'text',
+                required: true,
+                group: 'Credentials',
+                description: '1-16 characters, starting with a letter.',
+                validation: {
+                    pattern: '^[A-Za-z][A-Za-z0-9_]{0,15}$',
+                    minLength: 1,
+                    maxLength: 16,
+                    message: 'Use 1-16 characters starting with a letter: letters, numbers, or underscores.',
+                },
+            },
+            {
+                name: 'masterUserPassword',
+                label: 'Master Password',
+                type: 'password',
+                required: true,
+                group: 'Credentials',
+                description: 'At least 8 characters.',
+                validation: {
+                    minLength: 8,
+                    maxLength: 128,
+                    message: 'Master password must be at least 8 characters.',
                 },
             },
         ],
-        actions: ['list', 'create', 'delete', 'inspect'],
-        capabilities: {
-            resourceActions: [
-                {name: 'list', label: 'List databases', enabled: true, status: 'available', runtimeRequired: true},
-                {name: 'create', label: 'Create database', enabled: true, status: 'available', runtimeRequired: true},
-                {name: 'delete', label: 'Delete database', enabled: true, status: 'available', runtimeRequired: true},
-                {name: 'inspect', label: 'Inspect metadata', enabled: true, status: 'available', runtimeRequired: true},
-            ],
-        },
+        actions: ['list', 'inspect', 'create', 'delete'],
         filters: databaseFilters,
-        columns: [
-            {name: 'name', label: 'Database'},
-            {name: 'engine', label: 'Engine'},
-            {name: 'status', label: 'Status'},
-            {name: 'createdAt', label: 'Created At'},
-        ],
+        columns: databaseColumns,
     }
-}
-
-export function gcpDatabaseSchema(): ServiceSchema {
-    return {
-        cloud: 'gcp',
-        service: 'database',
-        displayName: 'Cloud SQL',
-        fields: [
-            {
-                name: 'instanceName',
-                label: 'Instance Name',
-                type: 'text',
-                required: true,
-                description: 'Lowercase letters, numbers, and hyphens; must start with a letter.',
-            },
-            {
-                name: 'databaseVersion',
-                label: 'Database Version',
-                type: 'select',
-                required: false,
-                // The runtime backs instances with real Postgres containers and
-                // rejects every other engine, so this is not the full GCP list.
-                description: 'The local runtime supports PostgreSQL only.',
-                options: [
-                    {label: 'PostgreSQL 15', value: 'POSTGRES_15'},
-                    {label: 'PostgreSQL 16', value: 'POSTGRES_16'},
-                ],
-            },
-            {
-                name: 'region',
-                label: 'Region',
-                type: 'text',
-                required: false,
-                description: 'Defaults to us-central1.',
-            },
-            {
-                name: 'tier',
-                label: 'Machine Tier',
-                type: 'text',
-                required: false,
-                description: 'Defaults to db-f1-micro.',
-            },
-        ],
-        actions: ['list', 'create', 'inspect', 'delete'],
-        filters: databaseFilters,
-        columns: cloudSqlColumns,
-        capabilities: {
-            resourceActions: [
-                {name: 'list', label: 'List instances', enabled: true, status: 'available', runtimeRequired: true},
-                {name: 'create', label: 'Create instance', enabled: true, status: 'available', runtimeRequired: true},
-                {name: 'delete', label: 'Delete instance', enabled: true, status: 'available', runtimeRequired: true},
-                {name: 'inspect', label: 'Inspect instance', enabled: true, status: 'available', runtimeRequired: false},
-            ],
-        },
-    }
-}
-
-export function databaseSchemaFor(cloud: CloudProvider): ServiceSchema | null {
-    if (cloud === 'aws') return awsDatabaseSchema()
-    if (cloud === 'azure') return azureDatabaseSchema()
-    if (cloud === 'gcp') return gcpDatabaseSchema()
-    return null
 }

@@ -29,7 +29,7 @@ const storageObjectActions: CapabilitySchema<ObjectActionName>[] = [
         label: 'Create folder',
         enabled: true,
         status: 'partial',
-        reason: 'Folders are represented as object/blob prefixes, not filesystem directories.',
+        reason: 'Folders are represented as object key prefixes, not filesystem directories.',
         runtimeRequired: true,
     },
     {name: 'copy', label: 'Copy object', enabled: true, status: 'available', runtimeRequired: true},
@@ -73,71 +73,4 @@ export function awsStorageSchema(): ServiceSchema {
         filters: storageFilters,
         columns: storageColumns,
     }
-}
-
-export function azureStorageSchema(): ServiceSchema {
-    return {
-        cloud: 'azure',
-        service: 'storage',
-        displayName: 'Azure Blob Storage',
-        fields: [
-            {
-                name: 'containerName',
-                label: 'Container Name',
-                type: 'text',
-                required: true,
-                description: '3-63 characters. Lowercase letters, numbers, and hyphens.',
-                validation: {
-                    pattern: '^[a-z0-9](?:[a-z0-9]|-(?!-)){1,61}[a-z0-9]$',
-                    minLength: 3,
-                    maxLength: 63,
-                    message: 'Use a valid Azure container name: 3-63 lowercase letters, numbers, or single hyphens.',
-                },
-            },
-        ],
-        actions: ['list', 'create', 'delete', 'inspect'],
-        capabilities: {
-            resourceActions: storageResourceActions,
-            objectActions: storageObjectActions,
-        },
-        filters: storageFilters,
-        columns: storageColumns,
-    }
-}
-
-export function gcpStorageSchema(): ServiceSchema {
-    return {
-        cloud: 'gcp',
-        service: 'storage',
-        displayName: 'Google Cloud Storage',
-        fields: [
-            {
-                name: 'bucketName',
-                label: 'Bucket Name',
-                type: 'text',
-                required: true,
-                description: '3-63 characters. Lowercase letters, numbers, dots, underscores, and hyphens.',
-                validation: {
-                    pattern: '^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$',
-                    minLength: 3,
-                    maxLength: 63,
-                    message: 'Use a valid GCS bucket name: 3-63 lowercase characters, numbers, dots, underscores, or hyphens.',
-                },
-            },
-        ],
-        actions: ['list', 'create', 'delete', 'inspect'],
-        capabilities: {
-            resourceActions: storageResourceActions,
-            objectActions: storageObjectActions,
-        },
-        filters: storageFilters,
-        columns: storageColumns,
-    }
-}
-
-export function storageSchemaFor(cloud: CloudProvider): ServiceSchema | null {
-    if (cloud === 'aws') return awsStorageSchema()
-    if (cloud === 'azure') return azureStorageSchema()
-    if (cloud === 'gcp') return gcpStorageSchema()
-    return null
 }

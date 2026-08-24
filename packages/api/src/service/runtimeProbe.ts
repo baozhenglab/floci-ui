@@ -1,7 +1,5 @@
 import {RuntimeUnavailableError} from '../cloud-spi/errors'
 import type {CloudProvider} from '../cloud-spi/types'
-import {azure, azureEndpoint} from '../azure'
-import {gcp, gcpEndpoint} from '../gcp'
 
 /**
  * Liveness probes per runtime.
@@ -14,20 +12,16 @@ import {gcp, gcpEndpoint} from '../gcp'
 export type RuntimeProbe = () => Promise<void>
 
 export const runtimeProbes: Record<CloudProvider, RuntimeProbe> = {
-    // Every runtime exposes a health endpoint, but under its own path: core and
-    // Floci-AZ use /_floci/health, Floci-GCP uses /_floci-gcp/health.
     aws: () => probeHttp(`${awsEndpoint()}/_floci/health`, 'Floci core'),
-    azure: async () => {
-        await azure.fetch('/_floci/health', {method: 'GET'})
-    },
-    gcp: () => gcp.health(),
 }
 
-export function endpointFor(cloud: CloudProvider): string | null {
-    if (cloud === 'aws') return awsEndpoint()
-    if (cloud === 'azure') return azureEndpoint()
-    if (cloud === 'gcp') return gcpEndpoint()
-    return null
+/**
+ * Returns a string rather than `string | null`: every registered cloud has an
+ * endpoint. `CloudStatus.endpoint` stays nullable because the field is also
+ * populated for a service with no adapter behind it.
+ */
+export function endpointFor(_cloud: CloudProvider): string {
+    return awsEndpoint()
 }
 
 export function awsEndpoint(): string {

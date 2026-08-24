@@ -71,7 +71,7 @@ const ICON_ONLY_EXTENSIONS: Record<Exclude<ObjectIconKind, ObjectPreviewKind>, S
 
 /**
  * Best-effort preview/icon-kind detection from an object key/name. Storage
- * list APIs (S3 ListObjectsV2, Azure list blobs) do not return content-type
+ * list APIs (S3 ListObjectsV2) do not return content-type
  * per item — only a HEAD/GET on the object would — so this is an extension
  * heuristic. A wrong guess just fails to render the thumbnail/preview, it
  * never blocks any other action.

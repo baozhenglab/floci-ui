@@ -1558,17 +1558,6 @@ export function NetworkingPanel({cloud, resource, runtimeReachable}: NetworkingP
         onSuccess: (_, id) => {if (selected?.id === id) setSelected(null); void qc.invalidateQueries({queryKey: ['ec2', 'eips']})},
     })
 
-    if (cloud !== 'aws') {
-        return (
-            <div className="widget" style={{marginTop: 16}}>
-                <div className="widget-header"><Network size={14}/><h3 style={{marginLeft: 6}}>Networking</h3></div>
-                <div className="widget-body">
-                    <p style={{fontSize: 12, color: 'var(--text-2)'}}>Networking management coming soon for {cloud.toUpperCase()}.</p>
-                </div>
-            </div>
-        )
-    }
-
     if (!runtimeReachable) return null
 
     const sgs     = sgsQ.data    ?? []

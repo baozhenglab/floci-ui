@@ -1,13 +1,10 @@
-.PHONY: up up-multicloud down logs build push dev dev-build dev-down dev-logs dev-api dev-frontend install
+.PHONY: up down logs build push dev dev-build dev-down dev-logs dev-api dev-frontend install
 
 up:
 	docker compose up -d
 
-up-multicloud:
-	docker compose --profile multicloud up -d
-
 down:
-	docker compose --profile multicloud down
+	docker compose down
 
 logs:
 	docker compose logs -f

@@ -12,19 +12,18 @@ import {
     RuntimeError,
     RuntimeUnavailableError,
     ValidationError,
-    httpStatusToCloudError,
     isUnreachableCause,
     toHttpError,
 } from './errors'
 
 describe('CloudError wire shape', () => {
     test('keeps the generic label in message and the raw text in detail', () => {
-        const body = new RuntimeUnavailableError('Cannot reach Floci-AZ at http://localhost:4577').toBody()
+        const body = new RuntimeUnavailableError('Cannot reach Floci at http://localhost:4566').toBody()
 
         expect(body.code).toBe('runtime_unavailable')
         expect(body.message).toBe('Runtime unavailable')
         expect(body.error).toBe(body.message)
-        expect(body.detail).toBe('Cannot reach Floci-AZ at http://localhost:4577')
+        expect(body.detail).toBe('Cannot reach Floci at http://localhost:4566')
     })
 
     test('omits detail when it would duplicate the message', () => {
@@ -58,30 +57,6 @@ describe('CloudError wire shape', () => {
             expect(error.status).toBe(status)
             expect(error.code).toBe(code)
             expect(toHttpError(error).status).toBe(status)
-        })
-    }
-})
-
-describe('httpStatusToCloudError', () => {
-    const cases: Array<[number, CloudErrorStatus, CloudErrorCode]> = [
-        [400, 400, 'invalid_request'],
-        [401, 403, 'access_denied'],
-        [403, 403, 'access_denied'],
-        [404, 404, 'resource_not_found'],
-        [409, 409, 'resource_conflict'],
-        [429, 429, 'rate_limited'],
-        [501, 501, 'operation_not_implemented'],
-        [502, 503, 'runtime_unavailable'],
-        [503, 503, 'runtime_unavailable'],
-        [504, 503, 'runtime_unavailable'],
-        [418, 502, 'runtime_error'],
-    ]
-
-    for (const [runtimeStatus, expectedStatus, expectedCode] of cases) {
-        test(`HTTP ${runtimeStatus} becomes ${expectedStatus}`, () => {
-            const error = httpStatusToCloudError(runtimeStatus, `HTTP ${runtimeStatus}`)
-            expect(error.status).toBe(expectedStatus)
-            expect(error.code).toBe(expectedCode)
         })
     }
 })

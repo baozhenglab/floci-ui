@@ -12,7 +12,6 @@ export interface ConsoleServiceCard {
 }
 
 export interface ProviderBannerProps {
-    cloud: CloudProvider
     runtimeClass: 'ready' | 'pending' | 'unavailable'
     runtimeReachable: boolean
     onOpenStorage: () => void

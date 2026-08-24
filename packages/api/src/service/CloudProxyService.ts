@@ -7,10 +7,8 @@ import type {
     CloudServiceType,
     CloudServiceStatus,
     CloudStatus,
-    CosmosContainer,
-    CosmosItem,
-    CosmosQueryResult,
     CreateResourceInput,
+    KubeconfigFile,
     NoSqlItem,
     ResourceQuery,
     ServerlessInvokeResult,
@@ -51,11 +49,7 @@ export class CloudProxyService {
     }
 
     clouds(): CloudDescriptor[] {
-        return [
-            {id: 'aws', displayName: 'AWS', availability: 'available'},
-            {id: 'azure', displayName: 'Azure', availability: 'available'},
-            {id: 'gcp', displayName: 'GCP', availability: 'available'},
-        ]
+        return [{id: 'aws', displayName: 'AWS', availability: 'available'}]
     }
 
     /**
@@ -70,7 +64,7 @@ export class CloudProxyService {
             const derived: CloudAvailability = entry.legacyAvailability?.[cloud]
                 ?? (adapter ? 'available' : 'coming_soon')
             const availability = override.availability ?? derived
-            const displayName = override.displayName ?? displayNameFor(entry, cloud)
+            const displayName = override.displayName ?? displayNameFor(entry)
 
             return {
                 cloud,
@@ -78,7 +72,7 @@ export class CloudProxyService {
                 displayName,
                 availability,
                 reason: override.reason ?? unavailableReason(availability, cloud, displayName),
-                route: routeFor(entry, cloud),
+                route: routeFor(entry),
                 iconKey: entry.iconKey,
                 group: entry.group,
                 order: entry.order,
@@ -244,52 +238,16 @@ async invokeResource(
         await adapter.copyObject(srcResourceId, srcKey, destKey, destResourceId)
     }
 
-    async listCosmosContainers(cloud: CloudProvider, databaseId: string): Promise<CosmosContainer[]> {
-        const adapter = this.requireAdapter(cloud, 'database')
-        if (!adapter.listCosmosContainers) throw new NotSupportedError(`Cosmos containers are not supported for ${cloud}/database`)
-        return adapter.listCosmosContainers(databaseId)
-    }
-
-    async createCosmosContainer(cloud: CloudProvider, databaseId: string, input: CreateResourceInput): Promise<CosmosContainer> {
-        const adapter = this.requireAdapter(cloud, 'database')
-        if (!adapter.createCosmosContainer) throw new NotSupportedError(`Cosmos container creation is not supported for ${cloud}/database`)
-        return adapter.createCosmosContainer(databaseId, input)
-    }
-
-    async deleteCosmosContainer(cloud: CloudProvider, databaseId: string, containerId: string): Promise<void> {
-        const adapter = this.requireAdapter(cloud, 'database')
-        if (!adapter.deleteCosmosContainer) throw new NotSupportedError(`Cosmos container deletion is not supported for ${cloud}/database`)
-        await adapter.deleteCosmosContainer(databaseId, containerId)
-    }
-
-    async listCosmosItems(cloud: CloudProvider, databaseId: string, containerId: string): Promise<CosmosItem[]> {
-        const adapter = this.requireAdapter(cloud, 'database')
-        if (!adapter.listCosmosItems) throw new NotSupportedError(`Cosmos items are not supported for ${cloud}/database`)
-        return adapter.listCosmosItems(databaseId, containerId)
-    }
-
-    async upsertCosmosItem(cloud: CloudProvider, databaseId: string, containerId: string, document: Record<string, unknown>): Promise<CosmosItem> {
-        const adapter = this.requireAdapter(cloud, 'database')
-        if (!adapter.upsertCosmosItem) throw new NotSupportedError(`Cosmos item upsert is not supported for ${cloud}/database`)
-        return adapter.upsertCosmosItem(databaseId, containerId, document)
-    }
-
-    async deleteCosmosItem(cloud: CloudProvider, databaseId: string, containerId: string, itemId: string, partitionKey?: string | null): Promise<void> {
-        const adapter = this.requireAdapter(cloud, 'database')
-        if (!adapter.deleteCosmosItem) throw new NotSupportedError(`Cosmos item deletion is not supported for ${cloud}/database`)
-        await adapter.deleteCosmosItem(databaseId, containerId, itemId, partitionKey)
-    }
-
-    async queryCosmosItems(cloud: CloudProvider, databaseId: string, containerId: string, query: string): Promise<CosmosQueryResult> {
-        const adapter = this.requireAdapter(cloud, 'database')
-        if (!adapter.queryCosmosItems) throw new NotSupportedError(`Cosmos query is not supported for ${cloud}/database`)
-        return adapter.queryCosmosItems(databaseId, containerId, query)
-    }
-
     async listNoSqlItems(cloud: CloudProvider, resourceId: string): Promise<NoSqlItem[]> {
         const adapter = this.requireAdapter(cloud, 'nosql')
         if (!adapter.listNoSqlItems) throw new NotSupportedError(`Item listing is not supported for ${cloud}/nosql`)
         return adapter.listNoSqlItems(resourceId)
+    }
+
+    async kubeconfig(cloud: CloudProvider, service: CloudServiceType, resourceId: string): Promise<KubeconfigFile> {
+        const adapter = this.requireAdapter(cloud, service)
+        if (!adapter.kubeconfig) throw new NotSupportedError(`Kubeconfig is not available for ${cloud}/${service}`)
+        return adapter.kubeconfig(resourceId)
     }
 
     private requireAdapter(cloud: CloudProvider, service: CloudServiceType) {

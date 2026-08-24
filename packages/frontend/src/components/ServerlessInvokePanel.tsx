@@ -32,20 +32,12 @@ export function ServerlessInvokePanel({
   }, [resource?.id]);
 
   const isSupportedResource =
-    resource?.service === "serverless" &&
-    (resource.type === "lambda" ||
-      resource.type === "azure-function" ||
-      resource.type === "gcp-function");
+    resource?.service === "serverless" && resource.type === "lambda";
 
   const canInvoke = Boolean(resource && isSupportedResource && runtimeReachable);
   const canSubmit = canInvoke && !validationError;
 
-  const providerLabel =
-    cloud === "aws"
-      ? "Lambda function"
-      : cloud === "azure"
-        ? "Azure Function"
-        : "Google Cloud Function";
+  const providerLabel = "Lambda function";
 
   const invokeMutation = useMutation({
     mutationFn: () =>
@@ -89,8 +81,7 @@ const clearPayload = () => {
         <div className="empty compact">
           <h3>Select a serverless function</h3>
           <p>
-            Select a Lambda function, Azure Function, or Google Cloud Function to
-            invoke it from Cloud Explorer.
+            Select a Lambda function to invoke it from Cloud Explorer.
           </p>
         </div>
       </section>

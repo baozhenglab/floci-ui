@@ -37,8 +37,6 @@ export const SERVICE_GROUP_ORDER: ServiceGroup[] = [
 
 export interface ServiceCatalogMetadata {
     displayName: string
-    /** Per-cloud display override, e.g. 'EKS' vs 'AKS' vs 'GKE'. */
-    displayNameByCloud?: Partial<Record<CloudProvider, string>>
     /** Resolved to a component client-side; an unknown key degrades to a default. */
     iconKey: string
     group: ServiceGroup
@@ -46,12 +44,6 @@ export interface ServiceCatalogMetadata {
     order: number
     /** Defaults to the catalog key. A leading '/' marks a page outside Cloud Explorer. */
     route?: string
-    /**
-     * Per-cloud route override. Needed when one category is served by a legacy
-     * standalone page on one cloud and by Cloud Explorer on another — AWS secrets
-     * still live at /secretsmanager while Azure Key Vault is a normal explorer route.
-     */
-    routeByCloud?: Partial<Record<CloudProvider, string>>
     /**
      * Escape hatch for a service whose UI predates the SPI, so availability
      * cannot come from the registry. Every entry here is migration debt — delete
@@ -63,8 +55,7 @@ export interface ServiceCatalogMetadata {
 export const SERVICE_CATALOG = {
     compute: {displayName: 'Compute', iconKey: 'compute', group: 'Compute', order: 10},
     k8s: {
-        displayName: 'k8s Engine',
-        displayNameByCloud: {aws: 'EKS', azure: 'AKS', gcp: 'GKE'},
+        displayName: 'EKS',
         iconKey: 'k8s',
         group: 'Compute',
         order: 20,
@@ -73,11 +64,7 @@ export const SERVICE_CATALOG = {
     storage: {displayName: 'Storage', iconKey: 'storage', group: 'Storage', order: 10},
     database: {displayName: 'Database', iconKey: 'database', group: 'Databases', order: 10},
     nosql: {
-        displayName: 'NoSQL',
-        // Both labels are declared even though each arrives with its own adapter,
-        // so this row reads the same whichever of the two lands first. A label for
-        // a cloud with no adapter is inert: availability comes from the registry.
-        displayNameByCloud: {aws: 'DynamoDB', azure: 'Cosmos DB NoSQL'},
+        displayName: 'DynamoDB',
         iconKey: 'nosql',
         group: 'Databases',
         order: 20,
@@ -86,21 +73,16 @@ export const SERVICE_CATALOG = {
     apigateway: {displayName: 'API Gateway', iconKey: 'apigateway', group: 'Integration', order: 10},
     secrets: {
         displayName: 'Secrets Manager',
-        displayNameByCloud: {azure: 'Key Vault'},
         iconKey: 'secrets',
         group: 'Security',
         order: 10,
         route: '/secretsmanager',
-        // Azure Key Vault is a normal Cloud Explorer service, so it uses the catalog
-        // slug rather than the legacy standalone page AWS still points at.
-        routeByCloud: {azure: 'secrets'},
         // Migration debt: the AWS Secrets Manager page still lives outside Cloud
         // Explorer, so there is no adapter to derive availability from.
         legacyAvailability: {aws: 'available'},
     },
     iac: {
-        displayName: 'Infrastructure as Code',
-        displayNameByCloud: {aws: 'CloudFormation'},
+        displayName: 'CloudFormation',
         iconKey: 'iac',
         group: 'Provisioning',
         order: 10,
@@ -134,13 +116,12 @@ export function isServiceType(value: string): value is CloudServiceType {
     return Object.hasOwn(SERVICE_CATALOG, value)
 }
 
-export function displayNameFor(entry: ServiceCatalogEntry, cloud: CloudProvider): string {
-    return entry.displayNameByCloud?.[cloud] ?? entry.displayName
+export function displayNameFor(entry: ServiceCatalogEntry): string {
+    return entry.displayName
 }
 
-export function routeFor(entry: ServiceCatalogEntry, cloud?: CloudProvider): string {
-    const perCloud = cloud ? entry.routeByCloud?.[cloud] : undefined
-    return perCloud ?? entry.route ?? entry.service
+export function routeFor(entry: ServiceCatalogEntry): string {
+    return entry.route ?? entry.service
 }
 
 export function compareCatalogEntries(a: ServiceCatalogEntry, b: ServiceCatalogEntry): number {

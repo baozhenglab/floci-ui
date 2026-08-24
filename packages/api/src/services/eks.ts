@@ -1,6 +1,8 @@
 import {
+  CreateClusterCommand,
   CreateFargateProfileCommand,
   CreateNodegroupCommand,
+  DeleteClusterCommand,
   DeleteFargateProfileCommand,
   DeleteNodegroupCommand,
   DescribeClusterCommand,
@@ -80,6 +82,18 @@ export type EksFargateProfile = {
     labels: Record<string, string>;
   }[];
   tags: Record<string, string>;
+};
+
+export type CreateEksClusterInput = {
+  name: string;
+  subnetIds: string[];
+  /**
+   * Optional: the Floci runtime accepts a cluster without one, though real EKS
+   * requires a cluster service role.
+   */
+  roleArn?: string;
+  version?: string;
+  securityGroupIds?: string[];
 };
 
 export type CreateEksNodegroupInput = {
@@ -273,6 +287,28 @@ export function createEksService(client: EKSClient = awsClients.eks) {
 
     async describeCluster(name: string): Promise<EksCluster> {
       const res = await client.send(new DescribeClusterCommand({ name }));
+      return toEksCluster(res.cluster ?? {});
+    },
+
+    async createCluster(input: CreateEksClusterInput): Promise<EksCluster> {
+      const res = await client.send(
+        new CreateClusterCommand({
+          name: input.name,
+          roleArn: input.roleArn,
+          version: input.version,
+          resourcesVpcConfig: {
+            subnetIds: input.subnetIds,
+            ...(input.securityGroupIds?.length
+              ? { securityGroupIds: input.securityGroupIds }
+              : {}),
+          },
+        }),
+      );
+      return toEksCluster(res.cluster ?? {});
+    },
+
+    async deleteCluster(name: string): Promise<EksCluster> {
+      const res = await client.send(new DeleteClusterCommand({ name }));
       return toEksCluster(res.cluster ?? {});
     },
 

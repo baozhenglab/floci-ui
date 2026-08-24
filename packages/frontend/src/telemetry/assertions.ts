@@ -3,8 +3,6 @@ import type { ApiRequestEvent, CloudProvider } from "./types";
 
 const CLOUD_PROVIDERS: ReadonlySet<CloudProvider> = new Set([
   "aws",
-  "azure",
-  "gcp",
   "system",
 ]);
 

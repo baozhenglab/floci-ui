@@ -7,82 +7,64 @@ const eksColumns: TableColumnSchema[] = [
     {name: 'createdAt', label: 'Created At'},
 ]
 
-/** GKE reports an API endpoint and node pools, which the EKS list does not. */
-const gkeColumns: TableColumnSchema[] = [
-    {name: 'name', label: 'Name'},
-    {name: 'status', label: 'Status', format: 'badge'},
-    {name: 'version', label: 'Version'},
-    {name: 'region', label: 'Location'},
-    {name: 'endpoint', label: 'Endpoint', path: 'metadata.endpoint', format: 'code'},
-    {name: 'createdAt', label: 'Created At', format: 'datetime'},
-]
-
 const eksFilters: FieldSchema[] = [
     {name: 'search', label: 'Search', type: 'text', required: false},
 ]
+
+const versionOptions = ['1.32', '1.31', '1.30', '1.29', '1.28'].map((value) => ({
+    label: value,
+    value,
+}))
 
 export function awsEksSchema(): ServiceSchema {
     return {
         cloud: 'aws',
         service: 'k8s',
         displayName: 'AWS EKS',
-        fields: [],
-        actions: ['list', 'inspect'],
-        filters: eksFilters,
-        columns: eksColumns,
-    }
-}
-
-export function azureAksSchema(): ServiceSchema {
-    return {
-        cloud: 'azure',
-        service: 'k8s',
-        displayName: 'Azure AKS',
-        fields: [],
-        actions: ['list', 'inspect'],
-        filters: eksFilters,
-        columns: eksColumns,
-    }
-}
-
-export function gcpGkeSchema(): ServiceSchema {
-    return {
-        cloud: 'gcp',
-        service: 'k8s',
-        displayName: 'Google GKE',
         fields: [
             {
-                name: 'clusterName',
+                name: 'name',
                 label: 'Cluster Name',
                 type: 'text',
                 required: true,
-                description: 'Lowercase letters, numbers, and hyphens; must start with a letter.',
+                description: '1-100 characters. Letters, numbers, hyphens, and underscores.',
+                validation: {
+                    pattern: '^[0-9A-Za-z][A-Za-z0-9_-]{0,99}$',
+                    minLength: 1,
+                    maxLength: 100,
+                    message: 'Use a valid EKS cluster name: start alphanumeric, then letters, numbers, hyphens, or underscores.',
+                },
             },
             {
-                name: 'initialNodeCount',
-                label: 'Initial Node Count',
+                name: 'subnetIds',
+                label: 'Subnet IDs',
+                type: 'text',
+                required: true,
+                span: true,
+                // Existing subnets only — the runtime rejects an unknown id with
+                // InvalidParameterException. Comma-separated matches how the
+                // compute schema takes security group ids.
+                description: 'Two or more existing subnet IDs separated by commas — e.g. subnet-default-a, subnet-default-b',
+            },
+            {
+                name: 'version',
+                label: 'Kubernetes Version',
+                type: 'select',
+                required: false,
+                options: versionOptions,
+                description: 'Defaults to the runtime\'s own default when left unset.',
+            },
+            {
+                name: 'roleArn',
+                label: 'Cluster Role ARN',
                 type: 'text',
                 required: false,
-                description: 'Defaults to 1. The local runtime backs the cluster with a single k3s container.',
+                span: true,
+                description: 'Optional here — real EKS requires a cluster service role.',
             },
         ],
-        actions: ['list', 'create', 'inspect', 'delete'],
+        actions: ['list', 'inspect', 'create', 'delete'],
         filters: eksFilters,
-        columns: gkeColumns,
-        capabilities: {
-            resourceActions: [
-                {name: 'list', label: 'List clusters', enabled: true, status: 'available', runtimeRequired: true},
-                {name: 'create', label: 'Create cluster', enabled: true, status: 'available', runtimeRequired: true},
-                {name: 'delete', label: 'Delete cluster', enabled: true, status: 'available', runtimeRequired: true},
-                {name: 'inspect', label: 'Inspect cluster', enabled: true, status: 'available', runtimeRequired: false},
-            ],
-        },
+        columns: eksColumns,
     }
-}
-
-export function k8sSchemaFor(cloud: CloudProvider): ServiceSchema | null {
-    if (cloud === 'aws') return awsEksSchema()
-    if (cloud === 'azure') return azureAksSchema()
-    if (cloud === 'gcp') return gcpGkeSchema()
-    return null
 }

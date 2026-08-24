@@ -17,10 +17,9 @@ export function runtimeClassFor(status: CloudStatus | undefined, loading: boolea
     return status.runtime === 'reachable' ? 'ready' : 'unavailable'
 }
 
-export function runtimeDetailFor(cloud: CloudProvider, status?: CloudStatus): string {
+export function runtimeDetailFor(status?: CloudStatus): string {
     if (status?.runtime === 'reachable') return 'Connected through Cloud Proxy API'
     if (status?.runtime === 'unavailable') return 'Start the selected runtime to load resources'
-    if (cloud === 'gcp') return 'Waiting for Floci-GCP runtime status'
     return 'Waiting for runtime status'
 }
 
@@ -45,16 +44,12 @@ export function serviceMetaLabel(status: CloudStatus | undefined, loading: boole
     return label
 }
 
-export function cloudName(cloud: CloudProvider): string {
-    if (cloud === 'aws') return 'AWS Local Runtime'
-    if (cloud === 'azure') return 'Azure Local Runtime'
-    return 'GCP Local Runtime'
+export function cloudName(): string {
+    return 'AWS Local Runtime'
 }
 
-export function providerDescription(cloud: CloudProvider): string {
-    if (cloud === 'aws') return 'Storage, runtime infrastructure, and AWS-specific pages are backed by Floci AWS Core.'
-    if (cloud === 'azure') return 'Storage is backed by Floci-AZ through the same normalized storage contract.'
-    return 'Storage is backed by Floci-GCP through the same normalized storage contract.'
+export function providerDescription(): string {
+    return 'Storage, runtime infrastructure, and AWS-specific pages are backed by Floci AWS Core.'
 }
 
 export function adapterLabel(cloud: CloudProvider, status?: CloudStatus): string {
@@ -62,8 +57,6 @@ export function adapterLabel(cloud: CloudProvider, status?: CloudStatus): string
     return `${cloud.toUpperCase()} Adapter`
 }
 
-export function runtimeName(cloud: CloudProvider): string {
-    if (cloud === 'aws') return 'Floci AWS Core'
-    if (cloud === 'azure') return 'Floci-AZ'
-    return 'Floci-GCP'
+export function runtimeName(): string {
+    return 'Floci AWS Core'
 }

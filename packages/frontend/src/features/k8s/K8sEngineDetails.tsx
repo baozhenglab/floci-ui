@@ -1,5 +1,7 @@
 import {useState} from 'react'
-import {Plus, Trash2} from 'lucide-react'
+import {Download, Loader2, Plus, Trash2} from 'lucide-react'
+import {useMutation} from '@tanstack/react-query'
+import {getClusterKubeconfig} from '@/api/cloudProxyClient'
 import type {EksFargateProfile, EksNodegroup} from '@/api/aws/eks.api'
 import {
     useCreateEksFargateProfileMutation,
@@ -13,25 +15,60 @@ import {
 } from '@/api/aws/eks.queries'
 
 interface K8sEngineDetailsProps {
-    cloud: string
     clusterName: string
 }
 
-export function K8sEngineDetails({cloud, clusterName}: K8sEngineDetailsProps) {
-    if (cloud !== 'aws') {
-        return (
-            <section className="inspector-section">
-                <p className="metric-label">k8s Engine Capabilities</p>
-                <p className="muted compact-text">Nodegroups and Fargate profiles are currently wired for AWS EKS.</p>
-            </section>
-        )
-    }
-
+export function K8sEngineDetails({clusterName}: K8sEngineDetailsProps) {
     return (
         <>
+            <KubeconfigSection clusterName={clusterName}/>
             <EksNodegroupsSection clusterName={clusterName}/>
             <EksFargateProfilesSection clusterName={clusterName}/>
         </>
+    )
+}
+
+function KubeconfigSection({clusterName}: {clusterName: string}) {
+    const download = useMutation({
+        mutationFn: () => getClusterKubeconfig('aws', 'k8s', clusterName),
+        onSuccess: (file) => {
+            // Built in the browser rather than served as a file response so the
+            // request still goes through the API client (and its auth cookie).
+            const url = URL.createObjectURL(
+                new Blob([file.content], {type: 'application/yaml'}),
+            )
+            const anchor = document.createElement('a')
+            anchor.href = url
+            anchor.download = file.filename
+            anchor.click()
+            URL.revokeObjectURL(url)
+        },
+    })
+
+    return (
+        <section className="inspector-section">
+            <p className="metric-label">Cluster Access</p>
+            <p className="muted compact-text">
+                Download a kubeconfig for this cluster, then{' '}
+                <code>export KUBECONFIG=~/Downloads/{clusterName}.kubeconfig</code>.
+            </p>
+            <button
+                className="button compact"
+                type="button"
+                disabled={download.isPending}
+                onClick={() => download.mutate()}
+            >
+                {download.isPending ? <Loader2 size={12} className="spin"/> : <Download size={12}/>}
+                {download.isPending ? 'Preparing' : 'Download kubeconfig'}
+            </button>
+            {download.isError && (
+                <p className="muted compact-text" role="alert">
+                    {download.error instanceof Error
+                        ? download.error.message
+                        : 'Could not build a kubeconfig for this cluster.'}
+                </p>
+            )}
+        </section>
     )
 }
 

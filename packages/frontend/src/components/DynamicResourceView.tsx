@@ -29,7 +29,6 @@ import type {
 } from "@/types/cloud";
 import type { CloudResource, StorageObject } from "@/types/resource";
 import type { ServiceSchema } from "@/types/schema";
-import { CosmosNoSqlPanel } from "@/components/CosmosNoSqlPanel";
 import { ServerlessInvokePanel } from "@/components/ServerlessInvokePanel";
 import { DynamoDbTableExplorer } from "@/components/DynamoDbTableExplorer";
 
@@ -102,12 +101,16 @@ export function DynamicResourceView({
     },
   });
 
+  const resetDelete = deleteMut.reset;
   useEffect(() => {
     setSelected(undefined);
     setSelectedObject(undefined);
     setCreateOpen(false);
     setSearch("");
-  }, [cloud, service]);
+    // Otherwise a failed delete keeps its banner after navigating to another
+    // service, where it no longer refers to anything on screen.
+    resetDelete();
+  }, [cloud, service, resetDelete]);
 
   useEffect(() => {
     setSelectedObject(undefined);
@@ -242,14 +245,13 @@ export function DynamicResourceView({
             {canCreate && createOpen && (
               <div className="resource-create-inline">
                 {/*
-                 * AWS only. LaunchInstanceForm is an EC2 form: it asks for an AMI id,
+                 * LaunchInstanceForm is an EC2-specific form: it asks for an AMI id,
                  * populates its dropdowns from the legacy /api/ec2 routes, and submits
-                 * imageId/instanceType. On any other cloud that is the wrong form
-                 * entirely — the Azure adapter rejects it with "resourceGroup is
-                 * required". Every other cloud falls through to DynamicFormRenderer,
-                 * which builds the right form from the adapter's own schema.
+                 * imageId/instanceType — a shape a flat generic form cannot express.
+                 * Every other service falls through to DynamicFormRenderer, which
+                 * builds its form from the adapter's own schema.
                  */}
-                {service === "compute" && cloud === "aws" ? (
+                {service === "compute" ? (
                   <LaunchInstanceForm
                     cloud={cloud}
                     selectedResource={activeSelected}
@@ -273,6 +275,19 @@ export function DynamicResourceView({
                     onSubmit={(values) => createMut.mutate(values)}
                   />
                 )}
+              </div>
+            )}
+            {/*
+             * Delete is destructive and can be refused by the runtime (an RDS
+             * instance already being deleted, a non-empty bucket). Without this
+             * the mutation's error was never read: the trash icon just
+             * re-enabled and the row stayed, which reads as "nothing happened".
+             */}
+            {deleteMut.isError && (
+              <div className="inline-error">
+                {deleteMut.error instanceof Error
+                  ? deleteMut.error.message
+                  : `Could not delete the selected ${schema.displayName} resource.`}
               </div>
             )}
             {renderResourceSurface({
@@ -324,13 +339,6 @@ export function DynamicResourceView({
           runtimeReachable={runtimeReachable}
         />
       )}
-      {service === "database" && cloud === "azure" && (
-        <CosmosNoSqlPanel
-          cloud={cloud}
-          resource={activeSelected}
-          runtimeReachable={canUseRuntime}
-        />
-      )}
       {service === "serverless" && (
   <ServerlessInvokePanel
     cloud={cloud}
@@ -369,18 +377,9 @@ function TopbarServiceInfo({ onOpenInfo }: { onOpenInfo: () => void }) {
 }
 
 function resourceCreateLabel(schema: ServiceSchema): string {
-  if (schema.cloud === "aws" && schema.service === "storage")
-    return "Create bucket";
-  if (schema.cloud === "azure" && schema.service === "storage")
-    return "Create container";
-  if (schema.cloud === "azure" && schema.service === "database")
-    return "Create database";
-  if (schema.cloud === "aws" && schema.service === "nosql")
-    return "Create table";
-  if (schema.cloud === "azure" && schema.service === "secrets")
-    return "Create secret";
-  if (schema.cloud === "aws" && schema.service === "apigateway")
-    return "Create API";
+  if (schema.service === "storage") return "Create bucket";
+  if (schema.service === "nosql") return "Create table";
+  if (schema.service === "apigateway") return "Create API";
   return "Create resource";
 }
 

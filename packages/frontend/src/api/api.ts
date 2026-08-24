@@ -31,25 +31,13 @@ export const apiEndpointKeys = {
         copy: "clouds.services.storage.objects.copy",
       },
     },
-    database: {
-      cosmos: {
-        containers: {
-          list: "clouds.services.database.cosmos.containers.list",
-          create: "clouds.services.database.cosmos.containers.create",
-          delete: "clouds.services.database.cosmos.containers.delete",
-        },
-        items: {
-          list: "clouds.services.database.cosmos.items.list",
-          upsert: "clouds.services.database.cosmos.items.upsert",
-          delete: "clouds.services.database.cosmos.items.delete",
-          query: "clouds.services.database.cosmos.items.query",
-        },
-      },
-    },
     nosql: {
       items: {
         list: "clouds.services.nosql.items.list",
       },
+    },
+    k8s: {
+      kubeconfig: "clouds.services.k8s.kubeconfig.get",
     },
   },
   aws: {
@@ -307,58 +295,10 @@ export const endpointRegistry: EndpointRegistry = new Map([
     },
   ],
   [
-    apiEndpointKeys.clouds.database.cosmos.containers.list,
+    apiEndpointKeys.clouds.k8s.kubeconfig,
     {
-      path: "/clouds/:cloud/services/database/resources/:id/containers",
+      path: "/clouds/:cloud/services/:service/resources/:id/kubeconfig",
       method: "GET",
-      telemetry: { service: "cloud-proxy" },
-    },
-  ],
-  [
-    apiEndpointKeys.clouds.database.cosmos.containers.create,
-    {
-      path: "/clouds/:cloud/services/database/resources/:id/containers",
-      method: "POST",
-      telemetry: { service: "cloud-proxy" },
-    },
-  ],
-  [
-    apiEndpointKeys.clouds.database.cosmos.containers.delete,
-    {
-      path: "/clouds/:cloud/services/database/resources/:id/containers/:containerId",
-      method: "DELETE",
-      telemetry: { service: "cloud-proxy" },
-    },
-  ],
-  [
-    apiEndpointKeys.clouds.database.cosmos.items.list,
-    {
-      path: "/clouds/:cloud/services/database/resources/:id/containers/:containerId/items",
-      method: "GET",
-      telemetry: { service: "cloud-proxy" },
-    },
-  ],
-  [
-    apiEndpointKeys.clouds.database.cosmos.items.upsert,
-    {
-      path: "/clouds/:cloud/services/database/resources/:id/containers/:containerId/items",
-      method: "POST",
-      telemetry: { service: "cloud-proxy" },
-    },
-  ],
-  [
-    apiEndpointKeys.clouds.database.cosmos.items.delete,
-    {
-      path: "/clouds/:cloud/services/database/resources/:id/containers/:containerId/items/:itemId",
-      method: "DELETE",
-      telemetry: { service: "cloud-proxy" },
-    },
-  ],
-  [
-    apiEndpointKeys.clouds.database.cosmos.items.query,
-    {
-      path: "/clouds/:cloud/services/database/resources/:id/containers/:containerId/query",
-      method: "POST",
       telemetry: { service: "cloud-proxy" },
     },
   ],
@@ -648,4 +588,18 @@ export function createApiClient(
   return client;
 }
 
+/**
+ * No token is read here, deliberately.
+ *
+ * The API serves this bundle from below its own auth gate, so anything Vite
+ * inlines at build time (`import.meta.env.VITE_*`) is readable by an
+ * unauthenticated fetch of the JS asset — a build-time token would hand the
+ * credential to exactly the caller the gate exists to stop.
+ *
+ * Authentication is the httpOnly cookie from `GET /api/session?token=…` (the URL
+ * the API prints on boot). The browser attaches it to every same-origin `/api`
+ * request, which covers both dev (through the Vite proxy) and production (SPA
+ * served by the API) — and, unlike a header, it also covers the direct-link
+ * URLs that bypass this client entirely (object download, preview, thumbnails).
+ */
 export const apiClient = createApiClient();

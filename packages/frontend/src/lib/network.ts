@@ -1,6 +1,6 @@
 /**
- * Cross-cloud network validation utilities.
- * CIDR and port logic applies equally to AWS VPCs, Azure VNets, GCP VPCs, OCI VCNs, etc.
+ * Network validation utilities for VPC workflows.
+ * The CIDR and port logic is plain IPv4 arithmetic, independent of any provider.
  */
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────

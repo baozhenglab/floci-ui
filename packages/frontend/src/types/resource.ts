@@ -5,7 +5,7 @@ export interface CloudResource {
     name: string
     cloud: CloudProvider
     service: CloudServiceType
-    type: 'bucket' | 'container' | 'cluster' | 'db-instance' | 'cosmos-database' | 'dynamodb-table' | 'instance' | 'image' | 'vpc' | 'lambda' | "azure-function" | 'gcp-function' | 'secret' | 'rest-api';
+    type: 'bucket' | 'cluster' | 'db-instance' | 'dynamodb-table' | 'instance' | 'image' | 'vpc' | 'lambda' | 'rest-api'
     region: string | null
     createdAt: string | null
     status?: string | null
@@ -27,30 +27,6 @@ export interface StorageObject {
 export interface StorageObjectList {
     prefix: string
     objects: StorageObject[]
-}
-
-export interface CosmosContainer {
-    id: string
-    name: string
-    databaseId: string
-    partitionKeyPath: string
-    createdAt: string | null
-    metadata: Record<string, unknown>
-}
-
-export interface CosmosItem {
-    id: string
-    databaseId: string
-    containerId: string
-    partitionKey: string | null
-    etag: string | null
-    timestamp: string | null
-    document: Record<string, unknown>
-}
-
-export interface CosmosQueryResult {
-    items: Array<Record<string, unknown> | string | number | boolean | null>
-    count: number
 }
 
 export interface NoSqlItem {

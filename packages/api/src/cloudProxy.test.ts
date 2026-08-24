@@ -8,13 +8,12 @@ import type {CloudProvider, CloudServiceAdapter, CloudServiceType, ResourceActio
  *
  * A schema is a promise to the frontend: it decides which controls render and
  * which are greyed out. Three separate bugs came from breaking that promise —
- * networking advertised create/delete as available while the adapter threw,
- * serverless shipped an invoke panel against an adapter with no invoke, and the
- * Azure serverless adapter was advertised as available against a runtime that
- * answers 501. These tests make the contract mechanical instead of a convention.
+ * networking advertised create/delete as available while the adapter threw, and
+ * serverless shipped an invoke panel against an adapter with no invoke. These
+ * tests make the contract mechanical instead of a convention.
  */
 
-const CLOUDS: CloudProvider[] = ['aws', 'azure', 'gcp']
+const CLOUDS: CloudProvider[] = ['aws']
 
 /** Adapter method that must exist for a capability to claim `available`. */
 const METHOD_FOR_ACTION: Record<ResourceActionName, keyof CloudServiceAdapter> = {
@@ -132,12 +131,5 @@ describe('adapter capability advertisements match the runtime reality', () => {
             expect(capability?.status).not.toBe('available')
             expect(capability?.reason).toBeTruthy()
         }
-    })
-
-    test('Azure serverless reports its runtime gap through descriptorOverride', () => {
-        const override = adapterFor('azure', 'serverless').descriptorOverride?.()
-
-        expect(override?.availability).toBe('coming_soon')
-        expect(override?.reason).toContain('501')
     })
 })

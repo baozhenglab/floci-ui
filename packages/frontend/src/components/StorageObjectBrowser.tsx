@@ -159,13 +159,13 @@ export function StorageObjectBrowser({cloud, resource, capabilities = [], runtim
         return (
             <section className="object-browser empty compact">
                 <h3>Select a storage resource</h3>
-                <p>Choose a bucket or container to browse objects and blobs.</p>
+                <p>Choose a bucket to browse its objects.</p>
             </section>
         )
     }
 
     const objects = query.data?.objects ?? []
-    const objectLabel = cloud === 'azure' ? 'blobs' : 'objects'
+    const objectLabel = 'objects'
 
     // ── Filtered data ──
     const q = search.toLowerCase()
@@ -491,7 +491,7 @@ function MoveOrCopyModal({
     onConfirm: (destKey: string, destResourceId: string | undefined, mode: 'move' | 'copy') => void
 }) {
     const qc = useQueryClient()
-    const resourceLabel = cloud === 'azure' ? 'container' : 'bucket'
+    const resourceLabel = 'bucket'
     const [mode, setMode] = useState<'move' | 'copy'>('move')
     const [destKey, setDestKey] = useState(() => {
         const parts = srcObject.key.split('/')
@@ -509,7 +509,7 @@ function MoveOrCopyModal({
 
     const createResourceMut = useMutation({
         mutationFn: () => {
-            const nameField = cloud === 'azure' ? 'containerName' : 'bucketName'
+            const nameField = 'bucketName'
             return createCloudResource(cloud, 'storage', {[nameField]: newResourceName.trim()})
         },
         onSuccess: (created) => {
@@ -559,7 +559,7 @@ function MoveOrCopyModal({
                             className="input"
                             autoFocus
                             value={newResourceName}
-                            onChange={(e) => setNewResourceName(e.target.value.toLowerCase().replace(cloud === 'azure' ? /[^a-z0-9-]/g : /[^a-z0-9.-]/g, ''))}
+                            onChange={(e) => setNewResourceName(e.target.value.toLowerCase().replace(/[^a-z0-9.-]/g, ''))}
                             placeholder={`new-${resourceLabel}-name`}
                             onKeyDown={(e) => { if (e.key === 'Enter' && newResourceName.trim().length >= 3) createResourceMut.mutate() }}
                         />

@@ -55,7 +55,6 @@ export function ResourceInspector({
   );
   const isDatabase =
     resource.service === "database" || resource.type === "db-instance";
-  const isAwsDatabase = isDatabase && resource.cloud === "aws";
   const isK8sEngine = resource.service === "k8s" || resource.type === "cluster";
   const isLambda =
     resource.service === "serverless" || resource.type === "lambda";
@@ -128,15 +127,12 @@ export function ResourceInspector({
       {isDatabase && (
         <DatabaseConnectionsSection metadata={resource.metadata} />
       )}
-      {isAwsDatabase && <DatabaseLifecycleSection status={resource.status} />}
-      {isAwsDatabase && (
+      {isDatabase && <DatabaseLifecycleSection status={resource.status} />}
+      {isDatabase && (
         <DatabaseSnapshotsSection instanceIdentifier={resource.name} />
       )}
-      {isDatabase && !isAwsDatabase && (
-        <ProviderDatabaseSection cloud={resource.cloud} />
-      )}
       {isK8sEngine && (
-        <K8sEngineDetails cloud={resource.cloud} clusterName={resource.name} />
+        <K8sEngineDetails clusterName={resource.name} />
       )}
       {isLambda && (
         <section className="inspector-section">
@@ -174,25 +170,6 @@ export function ResourceInspector({
       </pre>
       <MetadataPanel metadata={resource.metadata} />
     </aside>
-  );
-}
-
-function ProviderDatabaseSection({ cloud }: { cloud: string }) {
-  const label =
-    cloud === "azure"
-      ? "Azure database"
-      : cloud === "gcp"
-        ? "Google Cloud SQL"
-        : "Database";
-
-  return (
-    <section className="inspector-section">
-      <p className="metric-label">Lifecycle</p>
-      <p className="muted compact-text">
-        {label} lifecycle and snapshot actions are exposed through the
-        normalized resource metadata only.
-      </p>
-    </section>
   );
 }
 

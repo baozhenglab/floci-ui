@@ -31,7 +31,7 @@ describe('SERVICE_CATALOG', () => {
         const iac = catalogEntry('iac')!
         expect(iac.group).toBe('Provisioning')
         expect(isServiceType('iac')).toBe(true)
-        expect(displayNameFor(iac, 'aws')).toBe('CloudFormation')
+        expect(displayNameFor(iac)).toBe('CloudFormation')
     })
 
     test('orders entries by group then in-group order', () => {
@@ -53,21 +53,21 @@ describe('SERVICE_CATALOG', () => {
         expect(routeFor(catalogEntry('secrets')!)).toBe('/secretsmanager')
     })
 
-    test('resolves per-cloud routes so one category can span a legacy page and the explorer', () => {
-        const secrets = catalogEntry('secrets')!
-        expect(routeFor(secrets, 'aws')).toBe('/secretsmanager')
-        expect(routeFor(secrets, 'azure')).toBe('secrets')
-        // A category with no per-cloud override is unaffected by the cloud argument.
-        expect(routeFor(catalogEntry('storage')!, 'azure')).toBe('storage')
+    // Pins the labels the sidebar actually renders. These were per-cloud overrides
+    // until AWS became the only cloud; promoting the AWS value into `displayName`
+    // is the step a careless removal skips, silently relabelling three nav rows.
+    test('exposes the AWS-facing service labels', () => {
+        expect(displayNameFor(catalogEntry('k8s')!)).toBe('EKS')
+        expect(displayNameFor(catalogEntry('nosql')!)).toBe('DynamoDB')
+        expect(displayNameFor(catalogEntry('iac')!)).toBe('CloudFormation')
+        expect(displayNameFor(catalogEntry('storage')!)).toBe('Storage')
+        expect(displayNameFor(catalogEntry('secrets')!)).toBe('Secrets Manager')
     })
 
-    test('resolves per-cloud display names', () => {
-        const k8s = catalogEntry('k8s')!
-        expect(displayNameFor(k8s, 'aws')).toBe('EKS')
-        expect(displayNameFor(k8s, 'azure')).toBe('AKS')
-        expect(displayNameFor(k8s, 'gcp')).toBe('GKE')
-        // No override -> the shared display name.
-        expect(displayNameFor(catalogEntry('storage')!, 'gcp')).toBe('Storage')
+    // legacyAvailability is the only thing keeping the Secrets Manager nav entry
+    // from going coming_soon: there is no secrets adapter to derive it from.
+    test('keeps the legacy Secrets Manager availability escape hatch', () => {
+        expect(catalogEntry('secrets')!.legacyAvailability?.aws).toBe('available')
     })
 })
 

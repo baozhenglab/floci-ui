@@ -5,16 +5,7 @@ import {AwsDatabaseAdapter} from './adapter-aws/AwsDatabaseAdapter'
 import {AwsEksAdapter} from './adapter-aws/AwsEksAdapter'
 import {AwsStorageAdapter} from './adapter-aws/AwsStorageAdapter'
 import {AwsDynamoDbAdapter} from './adapter-aws/AwsDynamoDbAdapter'
-import {AzureDatabaseAdapter} from './adapter-azure/AzureDatabaseAdapter'
-import {AzureStorageAdapter} from './adapter-azure/AzureStorageAdapter'
-import {AzureComputeAdapter} from './adapter-azure/AzureComputeAdapter'
-import {GcpStorageAdapter} from './adapter-gcp/GcpStorageAdapter'
-import {GcpCloudFunctionsAdapter} from './adapter-gcp/GcpCloudFunctionsAdapter'
-import {GcpCloudSqlAdapter} from './adapter-gcp/GcpCloudSqlAdapter'
-import {GcpGkeAdapter} from './adapter-gcp/GcpGkeAdapter'
 import {CloudProxyService} from './service/CloudProxyService'
-import {AzureServerlessAdapter} from './adapter-azure/AzureServerlessAdapter'
-import {AzureKeyVaultAdapter} from './adapter-azure/AzureKeyVaultAdapter'
 import {AwsServerlessAdapter} from './adapter-aws/AwsServerlessAdapter'
 import {AwsApiGatewayAdapter} from './adapter-aws/AwsApiGatewayAdapter'
 import {awsClientsForAccount, resolveAccountId} from './aws'
@@ -24,8 +15,7 @@ import {createRdsService} from './services/rds'
 
 /**
  * Build the adapter registry for an account. The account id drives the AWS SDK
- * credentials (see aws.ts), so every AWS call is isolated to that account; Azure
- * and GCP adapters use their own runtime auth model and are account-neutral.
+ * credentials (see aws.ts), so every AWS call is isolated to that account.
  *
  * Exported separately from the service so tests can assert registry contents —
  * notably that every adapter implements what its schema advertises — without
@@ -44,15 +34,6 @@ export function createCloudAdapterRegistry(accountId?: string | null): CloudAdap
         new AwsNetworkingAdapter(ec2Service),
         new AwsServerlessAdapter(clients.lambda),
         new AwsApiGatewayAdapter(clients.apiGateway),
-        new AzureStorageAdapter(),
-        new AzureDatabaseAdapter(),
-        new AzureComputeAdapter(),
-        new GcpStorageAdapter(),
-        new GcpCloudFunctionsAdapter(),
-        new GcpCloudSqlAdapter(),
-        new GcpGkeAdapter(),
-        new AzureServerlessAdapter(),
-        new AzureKeyVaultAdapter(),
     ])
 }
 

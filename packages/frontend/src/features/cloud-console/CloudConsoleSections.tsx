@@ -3,13 +3,13 @@ import {Cloud, Database, ExternalLink, Radio, Route, ShieldCheck} from 'lucide-r
 import {adapterLabel, cloudName, providerDescription, runtimeName} from './cloudConsoleHome.utils'
 import type {ProviderBannerProps, RuntimeFlowProps, ServiceGridProps, SummarySectionProps} from './types'
 
-export function ProviderBanner({cloud, runtimeClass, runtimeReachable, onOpenStorage}: ProviderBannerProps) {
+export function ProviderBanner({runtimeClass, runtimeReachable, onOpenStorage}: ProviderBannerProps) {
     return (
         <section className={`console-provider-banner ${runtimeClass}`}>
             <div>
                 <p className="eyebrow">Selected Cloud</p>
-                <h3>{cloudName(cloud)}</h3>
-                <p>{providerDescription(cloud)}</p>
+                <h3>{cloudName()}</h3>
+                <p>{providerDescription()}</p>
             </div>
             <div className="console-provider-actions">
                 <button className="button primary" type="button" disabled={!runtimeReachable} onClick={onOpenStorage}>
@@ -48,7 +48,7 @@ export function RuntimeFlow({cloud, status}: RuntimeFlowProps) {
             <FlowStep icon={Cloud} label="UI" value="Console Home"/>
             <FlowStep icon={Route} label="Proxy" value="/api/clouds"/>
             <FlowStep icon={ShieldCheck} label="Adapter" value={adapterLabel(cloud, status)}/>
-            <FlowStep icon={Database} label="Runtime" value={runtimeName(cloud)}/>
+            <FlowStep icon={Database} label="Runtime" value={runtimeName()}/>
         </section>
     )
 }

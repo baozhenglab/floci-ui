@@ -27,13 +27,13 @@ describe('CloudAdapterRegistry', () => {
         const registry = new CloudAdapterRegistry([adapter])
 
         expect(registry.get('aws', 'storage')).toBe(adapter)
-        expect(registry.get('azure', 'storage')).toBeUndefined()
+        expect(registry.get('aws', 'compute')).toBeUndefined()
     })
 
     test('lists services registered for a cloud', () => {
         const registry = new CloudAdapterRegistry([adapter])
 
         expect(registry.servicesFor('aws')).toEqual(['storage'])
-        expect(registry.servicesFor('azure')).toEqual([])
+        expect(new CloudAdapterRegistry([]).servicesFor('aws')).toEqual([])
     })
 })

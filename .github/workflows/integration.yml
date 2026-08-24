@@ -75,13 +75,19 @@ jobs:
       - name: Prepare writable storage dir for the Floci runtime
         run: mkdir -p data && chmod -R 777 data
 
+      # Pin the console token so the probes below can authenticate. This also
+      # exercises the real auth path rather than bypassing it.
+      - name: Set console auth token for the stack
+        run: echo "FLOCI_UI_TOKEN=integration-$GITHUB_RUN_ID" >> "$GITHUB_ENV"
+
       - name: Start stack (UI + API + floci/floci)
         run: docker compose up -d --build
 
       - name: Wait for the Floci runtime to be reachable
         run: |
           for i in $(seq 1 40); do
-            body=$(curl -fsS --max-time 5 http://localhost:4501/api/clouds/aws/status 2>/dev/null || true)
+            body=$(curl -fsS --max-time 5 -H "x-floci-ui-token: $FLOCI_UI_TOKEN" \
+              http://localhost:4501/api/clouds/aws/status 2>/dev/null || true)
             echo "[$i] $body"
             if echo "$body" | grep -q '"runtime":"reachable"'; then
               echo "Runtime reachable."
@@ -95,6 +101,7 @@ jobs:
       - name: Assert storage resources are listed (S3 via the real runtime)
         run: |
           code=$(curl -s -o /tmp/resources.json -w '%{http_code}' --max-time 10 \
+            -H "x-floci-ui-token: $FLOCI_UI_TOKEN" \
             "http://localhost:4501/api/clouds/aws/services/storage/resources")
           echo "HTTP $code"; cat /tmp/resources.json; echo
           test "$code" = "200"

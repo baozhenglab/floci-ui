@@ -17,7 +17,6 @@ export type CloudErrorCode =
     | 'operation_not_implemented'
     | 'runtime_unavailable'
     | 'runtime_error'
-    | 'cosmos_nosql_unavailable'
 
 export type CloudErrorStatus = 400 | 403 | 404 | 409 | 429 | 501 | 502 | 503
 
@@ -126,21 +125,6 @@ const UNREACHABLE_CAUSE_CODES = new Set([
     'UND_ERR_CONNECT_TIMEOUT',
     'UND_ERR_SOCKET',
 ])
-
-/**
- * Map a runtime HTTP status onto the matching `CloudError`. Shared by the Azure
- * and GCP REST clients so both report a 404 or a 501 the same way.
- */
-export function httpStatusToCloudError(status: number, message: string, options?: {cause?: unknown}): CloudError {
-    if (status === 400) return new ValidationError(message, options)
-    if (status === 401 || status === 403) return new AccessDeniedError(message, options)
-    if (status === 404) return new NotFoundError(message, options)
-    if (status === 409) return new ConflictError(message, options)
-    if (status === 429) return new RateLimitedError(message, options)
-    if (status === 501) return new NotImplementedByRuntimeError(message, options)
-    if (status === 502 || status === 503 || status === 504) return new RuntimeUnavailableError(message, options)
-    return new RuntimeError(message, options)
-}
 
 /** True when the failure is a transport error rather than an HTTP response. */
 export function isUnreachableCause(err: unknown): boolean {

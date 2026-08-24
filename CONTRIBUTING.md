@@ -49,7 +49,6 @@ frontend (`:4500`).
 
 ```bash
 docker compose up                        # AWS-only
-docker compose --profile multicloud up   # adds Azure + GCP emulators
 ```
 
 **Option B — local dev (three terminals):**
@@ -62,7 +61,8 @@ pnpm dev:api
 pnpm dev
 ```
 
-Open the UI at http://127.0.0.1:4500/. See [README.md](README.md) for full setup,
+Open the UI at http://localhost:4500/ (use `localhost`, not `127.0.0.1`:
+the API's session cookie is scoped to the host you authenticate on). See [README.md](README.md) for full setup,
 environment variables, and troubleshooting.
 
 ### Checks
@@ -70,9 +70,9 @@ environment variables, and troubleshooting.
 Run these before opening a PR:
 
 ```bash
-pnpm lint          # eslint (frontend)
+pnpm lint          # eslint (frontend + vite/vitest configs); gates PRs
 pnpm type-check    # tsc on both packages
-pnpm test          # bun test (api)
+pnpm test          # bun test (api) + vitest (frontend)
 pnpm build         # production build
 ```
 
@@ -126,7 +126,7 @@ feat(s3): add object preview panel to the bucket explorer
 fix(api): handle missing region in EC2 status call
 perf(frontend): memoize the service catalog query
 chore: bump vite to 5.4
-docs: update README with multicloud compose profile
+docs: update README with the compose profile
 refactor(serverless): extract lambda env-var mapping
 test(api): cover the clouds/aws/status route
 feat(api)!: change resource list response shape

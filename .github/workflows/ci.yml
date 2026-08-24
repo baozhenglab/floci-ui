@@ -52,15 +52,14 @@ jobs:
       - name: Type-check
         run: pnpm type-check
 
+      # Runs both suites: bun test for packages/api, vitest for the frontend.
       - name: Test
         run: pnpm test
 
       - name: Build
         run: pnpm build
 
-      # Lint is non-blocking for now: main has pre-existing
-      # react-hooks/rules-of-hooks violations in NetworkingPanel.tsx. Drop
-      # continue-on-error once those are fixed to make lint gate PRs.
+      # Lint gates PRs. The react-hooks/rules-of-hooks violations that this step
+      # used to tolerate are gone — `pnpm lint` exits clean on main.
       - name: Lint
         run: pnpm lint
-        continue-on-error: true

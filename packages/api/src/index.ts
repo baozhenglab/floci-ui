@@ -1,55 +1,22 @@
 import "dotenv/config";
-import { Hono } from "hono";
-import { serveStatic } from "hono/bun";
-import { cors } from "hono/cors";
-import { logger } from "hono/logger";
-import eks from "./routes/eks";
-import rds from "./routes/rds";
-import ec2 from "./routes/ec2";
-import secretsmanager from "./routes/secretsmanager";
-import clouds from "./routes/clouds";
-const app = new Hono();
+import { createApp } from "./app";
+import { authBanner, resolveAuthConfig } from "./auth";
 
-// The Secrets Manager routes read and delete secret values with server-side
-// AWS credentials, so an unrestricted `cors()` would let any web page in the
-// browser drive them cross-origin. Restrict CORS to trusted origins for those
-// routes only and keep the permissive default elsewhere. (Broad CORS hardening
-// for the other routes is tracked separately.) In production the frontend is
-// served from the same origin (see serveStatic below), so same-origin requests
-// are unaffected; cross-origin callers must be explicitly allow-listed.
-//
-// A single CORS middleware handles both cases: stacking two `cors()` calls
-// would either short-circuit the OPTIONS preflight in the wrong handler or let
-// the later one overwrite `Access-Control-Allow-Origin` on real requests.
-const secretsManagerOrigins = (
-  process.env.CORS_ALLOWED_ORIGINS ?? "http://localhost:3000"
+// Browser origins allowed to call the API cross-origin, and — for unsafe methods
+// — the only origins permitted to send state-changing requests at all.
+const allowedOrigins = (
+  process.env.CORS_ALLOWED_ORIGINS ?? "http://localhost:4500"
 )
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-app.use(
-  "*",
-  cors({
-    origin: (origin, c) =>
-      c.req.path.startsWith("/api/secretsmanager")
-        ? secretsManagerOrigins.includes(origin)
-          ? origin
-          : null
-        : "*",
-  }),
-);
-app.use("*", logger());
+const auth = resolveAuthConfig();
 
-app.route("/api/eks", eks);
-app.route("/api/rds", rds);
-app.route("/api/ec2", ec2);
-app.route("/api/secretsmanager", secretsmanager);
-app.route("/api/clouds", clouds);
-
-// Serve static frontend files when public/ directory is present (production)
-app.use("*", serveStatic({ root: "./public" }));
-app.get("*", serveStatic({ path: "./public/index.html" }));
+const app = createApp({ auth, allowedOrigins });
 
 const port = Number(process.env.PORT ?? 4501);
+
+console.log(authBanner(auth, allowedOrigins[0] ?? `http://localhost:${port}`));
+
 export default { port, fetch: app.fetch };

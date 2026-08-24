@@ -4,7 +4,7 @@ import type {CloudServiceType, ServiceGroup} from './serviceCatalog'
 
 export type {CloudServiceType, ServiceGroup}
 
-export type CloudProvider = 'aws' | 'azure' | 'gcp'
+export type CloudProvider = 'aws'
 
 export type CloudAvailability = 'available' | 'coming_soon'
 
@@ -49,8 +49,8 @@ export interface CloudStatus {
 
 /**
  * Health of one service rather than the whole cloud. Needed because a cloud can
- * be up while an individual service is not — the Azure runtime serves blob
- * storage but answers 501 for functions.
+ * be up while an individual service is not: the `iac` catalog row has no adapter,
+ * so a reachable runtime still reports that service as coming_soon.
  */
 export interface CloudServiceStatus {
     cloud: CloudProvider
@@ -152,7 +152,7 @@ export interface CloudResource {
     name: string
     cloud: CloudProvider
     service: CloudServiceType
-    type: 'bucket' | 'container' | 'cluster' | 'db-instance' | 'cosmos-database' | 'dynamodb-table' | 'instance' | 'image' | 'vpc' | 'lambda' | 'azure-function' | 'gcp-function' | 'secret' | 'rest-api'
+    type: 'bucket' | 'cluster' | 'db-instance' | 'dynamodb-table' | 'instance' | 'image' | 'vpc' | 'lambda' | 'rest-api'
     region: string | null
     createdAt: string | null
     status?: string | null
@@ -182,28 +182,11 @@ export interface StorageObjectDownload {
     contentLength: number | null
 }
 
-export interface CosmosContainer {
-    id: string
-    name: string
-    databaseId: string
-    partitionKeyPath: string
-    createdAt: string | null
-    metadata: Record<string, unknown>
-}
-
-export interface CosmosItem {
-    id: string
-    databaseId: string
-    containerId: string
-    partitionKey: string | null
-    etag: string | null
-    timestamp: string | null
-    document: Record<string, unknown>
-}
-
-export interface CosmosQueryResult {
-    items: Array<Record<string, unknown> | string | number | boolean | null>
-    count: number
+export interface KubeconfigFile {
+    /** Suggested download name, e.g. `fms.kubeconfig`. */
+    filename: string
+    /** YAML document. */
+    content: string
 }
 
 export interface NoSqlItem {
@@ -230,10 +213,12 @@ export interface ServerlessInvokeResult {
  * Lets a registered adapter correct its own advertised availability.
  *
  * Needed because "an adapter exists" and "the local runtime implements it" are
- * different facts: floci-az ships no /functions endpoint, so the Azure
- * serverless adapter is registered but cannot serve a request. Declaring that
- * here keeps the sidebar, the console card and the explorer surface consistent
- * from one string.
+ * different facts: an adapter can be registered and still be unable to serve a
+ * request. Declaring that here keeps the sidebar, the console card and the
+ * explorer surface consistent from one string.
+ *
+ * No adapter implements this today; the hook is kept because it is cloud-agnostic
+ * and `routes/clouds.test.ts` covers the mechanism through a fake adapter.
  */
 export interface CloudServiceDescriptorOverride {
     availability?: CloudAvailability
@@ -268,12 +253,10 @@ export interface CloudServiceAdapter {
      */
     health?(): Promise<void>
     copyObject?(srcResourceId: string, srcKey: string, destKey: string, destResourceId?: string): Promise<void>
-    listCosmosContainers?(databaseId: string): Promise<CosmosContainer[]>
-    createCosmosContainer?(databaseId: string, input: CreateResourceInput): Promise<CosmosContainer>
-    deleteCosmosContainer?(databaseId: string, containerId: string): Promise<void>
-    listCosmosItems?(databaseId: string, containerId: string): Promise<CosmosItem[]>
-    upsertCosmosItem?(databaseId: string, containerId: string, document: Record<string, unknown>): Promise<CosmosItem>
-    deleteCosmosItem?(databaseId: string, containerId: string, itemId: string, partitionKey?: string | null): Promise<void>
-    queryCosmosItems?(databaseId: string, containerId: string, query: string): Promise<CosmosQueryResult>
     listNoSqlItems?(resourceId: string): Promise<NoSqlItem[]>
+    /**
+     * A ready-to-use kubeconfig for a cluster resource. Optional: only the k8s
+     * category has one, and the SPI stays provider-neutral about it.
+     */
+    kubeconfig?(resourceId: string): Promise<KubeconfigFile>
 }

@@ -10,6 +10,7 @@ import {useQuery} from '@tanstack/react-query'
 import {getCloudStatus} from '@/api/cloudProxyClient'
 import {useCloudServicesQuery} from '@/api/queries/cloudQueries'
 import {AccountSwitcher} from '@/components/AccountSwitcher'
+import {ErrorBoundary} from '@/components/ErrorBoundary'
 import {serviceIcon} from '@/components/serviceIcons'
 import type {CloudProvider, CloudServiceDescriptor, RuntimeReachability} from '@/types/cloud'
 
@@ -208,14 +209,19 @@ export function Layout() {
                     </div>
                 </header>
                 <main className="main">
-                    <Outlet/>
+                    {/* Route-scoped so a service view that throws leaves the
+                        sidebar, cloud switcher and connection strip usable —
+                        and navigating away clears the error via resetKey. */}
+                    <ErrorBoundary resetKey={location.pathname} label="This view">
+                        <Outlet/>
+                    </ErrorBoundary>
                 </main>
             </div>
         </div>
     )
 }
 
-function activeCloudFromPath(pathname: string): 'aws' | 'azure' | 'gcp' {
-    const match = pathname.match(/^\/(?:cloud-explorer|console)\/(aws|azure|gcp)(?:\/|$)/)
-    return (match?.[1] ?? 'aws') as 'aws' | 'azure' | 'gcp'
+function activeCloudFromPath(pathname: string): CloudProvider {
+    const match = pathname.match(/^\/(?:cloud-explorer|console)\/(aws)(?:\/|$)/)
+    return (match?.[1] ?? 'aws') as CloudProvider
 }

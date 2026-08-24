@@ -56,7 +56,6 @@ lerna-debug.log*
 
 # Agent instruction symlinks — AGENTS.md is the canonical tracked file.
 # Contributors symlink these locally (see CONTRIBUTING.md); don't commit them.
-CLAUDE.md
 GEMINI.md
 
 # OS files
